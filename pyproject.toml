@@ -1,0 +1,24 @@
+[project]
+name = "fleetledger"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["apps", "config", "manage.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"apps/audit/signals.py" = ["E402"]
+"**/migrations/*.py" = ["ALL"]
+"apps/*/tests.py" = ["F401"]
+"apps/core/admin.py" = ["F401"]
+"apps/reports/admin.py" = ["F401"]
+"apps/reports/models.py" = ["F401"]
+"apps/core/views.py" = ["F401"]
+"apps/reports/views.py" = ["F401"]
+"scripts/*" = ["ALL"]
