@@ -27,16 +27,10 @@ services:
 
   web:
     build: .
-    command:
-      - gunicorn
-      - config.wsgi:application
-      - --bind
-      - 0.0.0.0:8000
-      - --workers
-      - "2"
     ports:
       - "8000:8000"
     environment:
+      PORT: "8000"
       DJANGO_SETTINGS_MODULE: config.settings.dev
       DJANGO_SECRET_KEY: docker-dev-secret
       DJANGO_DEBUG: "True"

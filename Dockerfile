@@ -16,7 +16,9 @@ COPY . .
 RUN chmod +x /app/scripts/entrypoint.sh \
     && python manage.py collectstatic --noinput --settings=config.settings.prod 2>/dev/null || true
 
+ENV PORT=8000
 EXPOSE 8000
 
 ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]
+# Render sets PORT (e.g. 10000); local Docker defaults to 8000.
+CMD ["sh", "-c", "exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --timeout 120"]
