@@ -26,8 +26,20 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 
+from corsheaders.defaults import default_headers  # noqa: E402
+
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])  # noqa: F405
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = (
+    *default_headers,
+    "x-tenant-id",
+)
+# Allow Render dashboard ↔ API without manual env on first deploy.
+if not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https://[\w-]+\.onrender\.com$",
+    ]
+
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])  # noqa: F405
 
 _sentry_dsn = env("SENTRY_DSN", default=None)  # noqa: F405

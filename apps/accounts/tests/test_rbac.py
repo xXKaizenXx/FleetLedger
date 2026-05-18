@@ -1,4 +1,5 @@
 from django.test import TestCase
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role, User
@@ -35,6 +36,14 @@ class RBACAPITests(TestCase):
             year=2024,
             acquired_at="2024-01-01",
         )
+
+    def test_token_auth_lists_vehicles_for_manager(self):
+        token, _ = Token.objects.get_or_create(user=self.manager)
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+        response = client.get("/api/v1/vehicles/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 1)
 
     def test_auditor_can_list_vehicles(self):
         self.assertEqual(Vehicle.all_objects.filter(tenant=self.org).count(), 1)

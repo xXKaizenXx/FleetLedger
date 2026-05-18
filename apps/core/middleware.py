@@ -17,6 +17,31 @@ from apps.core.context import (
 )
 
 
+class TokenAuthMiddleware:
+    """Authenticate API tokens before TenantMiddleware binds tenant context."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated:
+            return self.get_response(request)
+
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("Token "):
+            from rest_framework.authtoken.models import Token
+
+            key = auth_header.removeprefix("Token ").strip()
+            try:
+                token = Token.objects.select_related("user").get(key=key)
+                request.user = token.user
+            except Token.DoesNotExist:
+                pass
+
+        return self.get_response(request)
+
+
 class TenantMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
