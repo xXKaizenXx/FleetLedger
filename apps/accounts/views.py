@@ -1,6 +1,5 @@
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
-from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -11,10 +10,12 @@ from apps.accounts.serializers import UserSerializer
 
 
 class CsrfView(APIView):
+    """Return CSRF token JSON. Do not use @ensure_csrf_cookie on DRF APIView (breaks in prod)."""
+
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = []
 
-    @ensure_csrf_cookie
     def get(self, request):
         return Response({"csrfToken": get_token(request)})
 

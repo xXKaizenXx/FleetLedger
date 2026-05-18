@@ -18,6 +18,11 @@ class AuthAPITests(TestCase):
             branch=self.branch,
         )
 
+    def test_csrf_endpoint_returns_token(self):
+        response = self.client.get("/api/v1/auth/csrf/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("csrfToken", response.json())
+
     def test_health_endpoint_is_public(self):
         response = self.client.get("/api/v1/health/")
         self.assertEqual(response.status_code, 200)

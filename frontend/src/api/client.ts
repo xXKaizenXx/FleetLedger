@@ -1,12 +1,23 @@
 const API = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "/api/v1";
 
+/** In-memory token for cross-origin deploys (dashboard ≠ API host). */
+let csrfTokenFromApi: string | null = null;
+
 function getCsrfToken(): string | null {
+  if (csrfTokenFromApi) return csrfTokenFromApi;
   const match = document.cookie.match(/csrftoken=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
 export async function ensureCsrf(): Promise<void> {
-  await fetch(`${API}/auth/csrf/`, { credentials: "include" });
+  const res = await fetch(`${API}/auth/csrf/`, { credentials: "include" });
+  if (!res.ok) {
+    throw new Error("Could not initialize CSRF protection.");
+  }
+  const data = (await res.json()) as { csrfToken?: string };
+  if (data.csrfToken) {
+    csrfTokenFromApi = data.csrfToken;
+  }
 }
 
 type RequestOptions = RequestInit & { tenantId?: number | null };
