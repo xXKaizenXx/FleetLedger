@@ -36,7 +36,9 @@ class AuthAPITests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["username"], "manager@test-fleet")
+        body = response.json()
+        self.assertEqual(body["username"], "manager@test-fleet")
+        self.assertTrue(body.get("token"))
 
     def test_login_invalid_credentials(self):
         response = self.client.post(
@@ -48,7 +50,7 @@ class AuthAPITests(TestCase):
 
     def test_me_requires_authentication(self):
         response = self.client.get("/api/v1/auth/me/")
-        self.assertEqual(response.status_code, 403)
+        self.assertIn(response.status_code, (401, 403))
 
     def test_me_returns_current_user(self):
         self.client.force_authenticate(user=self.user)

@@ -126,9 +126,34 @@ Dependabot opens weekly PRs for pip, npm, and GitHub Actions updates.
 | Dashboard | `VITE_API_BASE_URL` | `https://fleetledger-api.onrender.com/api/v1` |
 | API (optional) | `SENTRY_DSN` | Your Sentry project DSN |
 
-4. Run `python manage.py seed_demo` once via Render shell if you want demo data (optional).
+4. Load demo data (see below — Render Shell is paid; use `SEED_DEMO` or local seed instead).
 
 Migrations run automatically on each API/worker deploy via `scripts/entrypoint.sh`.
+
+### Demo data without Render Shell (free tier)
+
+**Option A — `SEED_DEMO` env var (easiest)**
+
+1. Open **fleetledger-api** → **Environment** → add `SEED_DEMO` = `true`.
+2. **Manual Deploy** the API (wait until live).
+3. Remove `SEED_DEMO` or set it to `false` and deploy again so demo data is not re-applied on every release.
+
+`seed_demo` is idempotent (`get_or_create`), but turning `SEED_DEMO` off after the first successful deploy is still recommended.
+
+**Option B — seed from your machine**
+
+1. In Render, open **fleetledger-db** → **Connections** and copy the **External Database URL**.
+2. Locally:
+
+```bash
+pip install -r requirements.txt
+set DATABASE_URL=postgres://...   # Windows CMD
+set DJANGO_SETTINGS_MODULE=config.settings.prod
+python manage.py migrate
+python manage.py seed_demo
+```
+
+Use the same `DJANGO_SECRET_KEY` only if you need to match production settings; seeding only needs database access.
 
 ## Production checklist
 

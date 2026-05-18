@@ -10,6 +10,10 @@ export interface User {
   branch_name: string | null;
 }
 
+export interface LoginResponse extends User {
+  token: string;
+}
+
 export interface Organization {
   id: number;
   name: string;

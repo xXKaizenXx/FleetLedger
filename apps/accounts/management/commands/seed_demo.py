@@ -52,6 +52,10 @@ class Command(BaseCommand):
             if created:
                 manager.set_password("demo1234")
                 manager.save()
+            elif manager.tenant_id != org.pk or manager.branch_id != branch.pk:
+                manager.tenant = org
+                manager.branch = branch
+                manager.save(update_fields=["tenant", "branch"])
 
             auditor, created = User.objects.get_or_create(
                 username=f"auditor@{slug}",
@@ -64,12 +68,15 @@ class Command(BaseCommand):
             if created:
                 auditor.set_password("demo1234")
                 auditor.save()
+            elif auditor.tenant_id != org.pk:
+                auditor.tenant = org
+                auditor.save(update_fields=["tenant"])
 
             set_bypass_tenant_filter(False)
             set_current_tenant_id(org.pk)
             for i in range(1, 4):
                 vin = f"DEMO{slug[:4].upper()}{i:06d}X"
-                vehicle, v_created = Vehicle.all_objects.get_or_create(
+                vehicle, _ = Vehicle.all_objects.update_or_create(
                     vin=vin,
                     defaults={
                         "tenant": org,
@@ -83,7 +90,7 @@ class Command(BaseCommand):
                         "acquired_at": date(2023, 1, 15),
                     },
                 )
-                if v_created:
+                if not LeaseAgreement.objects.filter(vehicle=vehicle).exists():
                     LeaseAgreement.objects.create(
                         tenant=org,
                         vehicle=vehicle,
@@ -92,6 +99,7 @@ class Command(BaseCommand):
                         start_date=date(2023, 2, 1),
                         end_date=date(2028, 1, 31),
                     )
+                if not FinancialTransaction.objects.filter(vehicle=vehicle).exists():
                     FinancialTransaction.objects.create(
                         tenant=org,
                         vehicle=vehicle,
@@ -101,6 +109,7 @@ class Command(BaseCommand):
                         reference=f"LP-{i:04d}",
                         occurred_at=date.today().replace(day=1),
                     )
+                if not MaintenanceRecord.objects.filter(vehicle=vehicle).exists():
                     MaintenanceRecord.objects.create(
                         tenant=org,
                         vehicle=vehicle,
@@ -108,7 +117,10 @@ class Command(BaseCommand):
                         due_date=date.today().replace(month=((date.today().month % 12) + 1)),
                     )
 
-            self.stdout.write(self.style.SUCCESS(f"Seeded tenant: {org.name}"))
+            vehicle_count = Vehicle.all_objects.filter(tenant=org).count()
+            self.stdout.write(
+                self.style.SUCCESS(f"Seeded tenant: {org.name} ({vehicle_count} vehicles)")
+            )
 
         super_admin, created = User.objects.get_or_create(
             username="admin@fleetledger",

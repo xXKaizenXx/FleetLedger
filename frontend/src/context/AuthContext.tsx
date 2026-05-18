@@ -7,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api, ensureCsrf } from "../api/client";
-import type { Organization, User } from "../types";
+import { api, ensureCsrf, getAuthToken, setAuthToken } from "../api/client";
+import type { LoginResponse, Organization, User } from "../types";
 
 interface AuthState {
   user: User | null;
@@ -32,27 +32,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
 
   useEffect(() => {
-    ensureCsrf()
-      .then(() => api<User>("/auth/me/"))
-      .then((me) => {
+    const bootstrap = async () => {
+      try {
+        if (!getAuthToken()) await ensureCsrf();
+        const me = await api<User>("/auth/me/");
         setUser(me);
         if (me.role === "super_admin") {
-          return api<{ results: Organization[] } | Organization[]>("/organizations/").then((data) => {
-            setOrganizations(Array.isArray(data) ? data : data.results);
-          });
+          const data = await api<{ results: Organization[] } | Organization[]>("/organizations/");
+          setOrganizations(Array.isArray(data) ? data : data.results);
         }
-      })
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+      } catch {
+        setAuthToken(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    bootstrap();
   }, []);
 
   const login = useCallback(
     async (username: string, password: string) => {
       await ensureCsrf();
-      const me = await api<User>("/auth/login/", {
+      const me = await api<LoginResponse>("/auth/login/", {
         method: "POST",
         body: JSON.stringify({ username, password }),
       });
+      setAuthToken(me.token);
       setUser(me);
       if (me.role === "super_admin") {
         const orgs = await api<{ results: Organization[] } | Organization[]>("/organizations/");
@@ -63,7 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    await api("/auth/logout/", { method: "POST" });
+    try {
+      await api("/auth/logout/", { method: "POST" });
+    } finally {
+      setAuthToken(null);
+    }
     setUser(null);
     setTenantOverride(null);
     setOrganizations([]);
