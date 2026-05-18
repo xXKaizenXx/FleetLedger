@@ -6,7 +6,11 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 
 from apps.accounts.models import Role, User
-from apps.core.context import set_bypass_tenant_filter, set_current_tenant_id
+from apps.core.context import (
+    clear_tenant_context,
+    set_bypass_tenant_filter,
+    set_current_tenant_id,
+)
 from apps.finance.models import (
     FinancialTransaction,
     LeaseAgreement,
@@ -21,12 +25,12 @@ class Command(BaseCommand):
     help = "Create demo tenants, users, vehicles, and transactions for portfolio demos."
 
     def handle(self, *args, **options):
-        set_bypass_tenant_filter(True)
-
         tenants = [
             ("Barloworld Fleet SA", "barloworld-fleet"),
             ("Avis Corporate Leasing", "avis-corporate"),
         ]
+
+        set_bypass_tenant_filter(True)
 
         for name, slug in tenants:
             org, _ = Organization.objects.get_or_create(slug=slug, defaults={"name": name})
@@ -61,10 +65,11 @@ class Command(BaseCommand):
                 auditor.set_password("demo1234")
                 auditor.save()
 
+            set_bypass_tenant_filter(False)
             set_current_tenant_id(org.pk)
             for i in range(1, 4):
                 vin = f"DEMO{slug[:4].upper()}{i:06d}X"
-                vehicle, v_created = Vehicle.objects.get_or_create(
+                vehicle, v_created = Vehicle.all_objects.get_or_create(
                     vin=vin,
                     defaults={
                         "tenant": org,
@@ -117,6 +122,9 @@ class Command(BaseCommand):
         if created:
             super_admin.set_password("demo1234")
             super_admin.save()
+
+        clear_tenant_context()
+        set_bypass_tenant_filter(False)
 
         self.stdout.write(self.style.SUCCESS("Demo credentials — password: demo1234"))
         self.stdout.write("  Super Admin: admin@fleetledger")
