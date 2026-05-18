@@ -132,15 +132,13 @@ Migrations run automatically on each API/worker deploy via `scripts/entrypoint.s
 
 ### Demo data without Render Shell (free tier)
 
-**Option A — `SEED_DEMO` env var (easiest)**
+Demo data is loaded automatically on every API deploy (`migrate` + `seed_demo` in the Docker entrypoint). After deploy, check logs for:
 
-1. Open **fleetledger-api** → **Environment** → add `SEED_DEMO` = `true`.
-2. **Manual Deploy** the API (wait until live).
-3. Remove `SEED_DEMO` or set it to `false` and deploy again so demo data is not re-applied on every release.
+`Total vehicles in database: 6`
 
-`seed_demo` is idempotent (`get_or_create`), but turning `SEED_DEMO` off after the first successful deploy is still recommended.
+You do **not** need `SEED_DEMO` in the environment (optional legacy flag).
 
-**Option B — seed from your machine**
+**Option B — seed from your machine** (if the database is still empty)
 
 1. In Render, open **fleetledger-db** → **Connections** and copy the **External Database URL**.
 2. Locally:

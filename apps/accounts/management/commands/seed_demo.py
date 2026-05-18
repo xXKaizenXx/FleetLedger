@@ -1,6 +1,6 @@
 """Seed two isolated tenants with sample fleet and financial data."""
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
@@ -114,7 +114,7 @@ class Command(BaseCommand):
                         tenant=org,
                         vehicle=vehicle,
                         service_type="Full service",
-                        due_date=date.today().replace(month=((date.today().month % 12) + 1)),
+                        due_date=date.today() + timedelta(days=30),
                     )
 
             vehicle_count = Vehicle.all_objects.filter(tenant=org).count()
@@ -137,6 +137,9 @@ class Command(BaseCommand):
 
         clear_tenant_context()
         set_bypass_tenant_filter(False)
+
+        total_vehicles = Vehicle.all_objects.count()
+        self.stdout.write(self.style.SUCCESS(f"Total vehicles in database: {total_vehicles}"))
 
         self.stdout.write(self.style.SUCCESS("Demo credentials — password: demo1234"))
         self.stdout.write("  Super Admin: admin@fleetledger")

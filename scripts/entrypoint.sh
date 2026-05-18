@@ -2,9 +2,7 @@
 set -e
 
 python manage.py migrate --noinput
-
-if [ "${SEED_DEMO:-false}" = "true" ]; then
-  python manage.py seed_demo
-fi
+# Idempotent — repairs missing demo rows (vehicles, transactions) on every deploy.
+python manage.py seed_demo
 
 exec "$@"

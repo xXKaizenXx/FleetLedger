@@ -17,6 +17,10 @@ export function VehiclesPage() {
     setLoading(true);
     api<Paginated<Vehicle>>("/vehicles/", { tenantId: effectiveTenantId })
       .then((d) => setRows(d.results))
+      .catch((err) => {
+        console.error("Vehicles load failed:", err);
+        setRows([]);
+      })
       .finally(() => setLoading(false));
   }, [effectiveTenantId, user?.role]);
 

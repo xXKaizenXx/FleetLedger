@@ -18,15 +18,19 @@ export function DashboardPage() {
       api<Paginated<Vehicle>>("/vehicles/", opts),
       api<Paginated<Transaction>>("/transactions/", opts),
       api<Paginated<AuditLog>>("/audit-logs/", opts),
-    ]).then(([v, t, a]) => {
-      const spend = t.results.reduce((s, x) => s + parseFloat(x.amount), 0);
-      setStats({
-        vehicles: v.count,
-        transactions: t.count,
-        audits: a.count,
-        spend,
+    ])
+      .then(([v, t, a]) => {
+        const spend = t.results.reduce((s, x) => s + parseFloat(x.amount), 0);
+        setStats({
+          vehicles: v.count,
+          transactions: t.count,
+          audits: a.count,
+          spend,
+        });
+      })
+      .catch((err) => {
+        console.error("Dashboard load failed:", err);
       });
-    });
   }, [effectiveTenantId, user?.role]);
 
   async function queueReport(e: FormEvent) {
