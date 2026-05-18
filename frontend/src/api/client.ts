@@ -1,4 +1,4 @@
-const API = "/api/v1";
+const API = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "/api/v1";
 
 function getCsrfToken(): string | null {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

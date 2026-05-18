@@ -13,8 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput --settings=config.settings.prod 2>/dev/null || true
+RUN chmod +x /app/scripts/entrypoint.sh \
+    && python manage.py collectstatic --noinput --settings=config.settings.prod 2>/dev/null || true
 
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2"]
+ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]

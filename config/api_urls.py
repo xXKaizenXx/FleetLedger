@@ -1,5 +1,6 @@
 from apps.accounts.views import CsrfView, LoginView, LogoutView, MeView
 from apps.audit.views import AuditLogViewSet
+from apps.core.views import HealthView
 from apps.finance.views import (
     FinancialTransactionViewSet,
     GenerateMonthlyReportView,
@@ -9,6 +10,7 @@ from apps.finance.views import (
 from apps.fleet.views import VehicleViewSet
 from apps.tenants.views import OrganizationViewSet
 from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -20,6 +22,9 @@ router.register(r"maintenance", MaintenanceRecordViewSet, basename="maintenance"
 router.register(r"audit-logs", AuditLogViewSet, basename="audit-log")
 
 urlpatterns = [
+    path("health/", HealthView.as_view(), name="health"),
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="api-docs"),
     path("auth/csrf/", CsrfView.as_view(), name="auth-csrf"),
     path("auth/login/", LoginView.as_view(), name="auth-login"),
     path("auth/logout/", LogoutView.as_view(), name="auth-logout"),

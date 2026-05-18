@@ -1,16 +1,17 @@
 # FleetLedger
 
-Multi-tenant **Finance & Compliance** engine for automotive fleet operators — Django API, React dashboard, Celery workers, and CI/CD.
+Multi-tenant **Finance & Compliance** engine for automotive fleet operators — Django API, React dashboard, Celery workers, OpenAPI docs, and production-ready deployment.
 
 ## Stack
 
 | Layer | Tech |
 |-------|------|
-| API | Django 5.1, DRF, PostgreSQL |
+| API | Django 5.1, DRF, PostgreSQL, drf-spectacular (OpenAPI) |
 | Frontend | React 19, Vite, Tailwind CSS |
 | Jobs | Celery + Redis |
+| Observability | Structured logging, optional Sentry |
 | CI | GitHub Actions (ruff, tests, frontend build) |
-| Deploy | Docker, Render Blueprint (`render.yaml`) |
+| Deploy | Docker, Render Blueprint (`render.yaml`), Dependabot |
 
 ## Architecture
 
@@ -62,9 +63,14 @@ docker compose up --build
 | Service | URL |
 |---------|-----|
 | API | http://localhost:8000 |
-| Dashboard | http://localhost:5173 |
+| Dashboard (dev) | http://localhost:5173 |
+| Dashboard (production nginx) | http://localhost:8080 |
+| API docs (Swagger) | http://localhost:8000/api/v1/docs/ |
+| Health | http://localhost:8000/api/v1/health/ |
 | Postgres | localhost:5432 |
 | Redis | localhost:6379 |
+
+Demo data is seeded when `SEED_DEMO=true` (default in Docker Compose for local demos). **Do not** set `SEED_DEMO=true` in production.
 
 ## Demo users (password: `demo1234`)
 
@@ -87,6 +93,9 @@ Base URL: `http://127.0.0.1:8000/api/v1/`
 
 | Endpoint | Description |
 |----------|-------------|
+| `GET /health/` | Liveness/readiness (DB check) |
+| `GET /docs/` | Swagger UI (OpenAPI) |
+| `GET /schema/` | OpenAPI 3 schema (JSON) |
 | `POST /auth/login/` | Session login (SPA) |
 | `GET /auth/me/` | Current user |
 | `GET /vehicles/` | Tenant-scoped fleet |
@@ -101,31 +110,56 @@ GitHub Actions runs on every push/PR:
 - `python manage.py migrate` + `test` (Postgres + Redis services)
 - `npm ci && npm run build` in `frontend/`
 
+Dependabot opens weekly PRs for pip, npm, and GitHub Actions updates.
+
 ## Deploy to Render
 
 1. Push repo to GitHub.
-2. Create a **Blueprint** from `render.yaml` (web + worker + Redis + Postgres).
-3. Set `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` to your frontend URL.
+2. Create a **Blueprint** from `render.yaml` (API + worker + dashboard + Redis + Postgres).
+3. Set environment variables after the first deploy:
+
+| Service | Variable | Example |
+|---------|----------|---------|
+| API | `DJANGO_ALLOWED_HOSTS` | `fleetledger-api.onrender.com` |
+| API | `CORS_ALLOWED_ORIGINS` | `https://fleetledger-dashboard.onrender.com` |
+| API | `CSRF_TRUSTED_ORIGINS` | `https://fleetledger-dashboard.onrender.com` |
+| Dashboard | `VITE_API_BASE_URL` | `https://fleetledger-api.onrender.com/api/v1` |
+| API (optional) | `SENTRY_DSN` | Your Sentry project DSN |
+
+4. Run `python manage.py seed_demo` once via Render shell if you want demo data (optional).
+
+Migrations run automatically on each API/worker deploy via `scripts/entrypoint.sh`.
+
+## Production checklist
+
+- [ ] Strong `DJANGO_SECRET_KEY` and `REPORT_ENCRYPTION_PASSWORD` (auto-generated on Render)
+- [ ] `DJANGO_DEBUG=false` and `config.settings.prod`
+- [ ] HTTPS origins in `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
+- [ ] `SEED_DEMO` unset or `false` in production
+- [ ] SMTP email backend for report delivery (`EMAIL_BACKEND`, `EMAIL_HOST`, etc.)
+- [ ] Optional `SENTRY_DSN` for error tracking
 
 ## Project structure
 
 ```
 apps/           # Django domain apps (tenancy, fleet, finance, audit, reports)
 config/         # Settings, Celery, API routes
-frontend/       # React dashboard
-.github/        # CI workflow
+frontend/       # React dashboard (+ Dockerfile for nginx)
+scripts/        # Docker entrypoint (migrate, optional seed)
+.github/        # CI workflow, Dependabot
 docker-compose.yml
 render.yaml
 Dockerfile
+SECURITY.md
 ```
 
 ## Portfolio talking points
 
 1. **Defense in depth** — `TenantManager` filters every ORM query; middleware binds tenant context per request.
-2. **Separation of duties** — RBAC at the API and UI layer.
+2. **Separation of duties** — RBAC at the API and UI layer (covered by automated tests).
 3. **Compliance** — Immutable audit log with field-level diffs, actor, and IP.
-4. **Production patterns** — Async reporting, encrypted deliverables, Docker, CI, cloud blueprint.
+4. **Production patterns** — Health probes, rate limiting, OpenAPI, encrypted deliverables, Docker entrypoint, static frontend deploy, CI, cloud blueprint.
 
 ## License
 
-MIT — portfolio use.
+MIT — see [LICENSE](LICENSE).
